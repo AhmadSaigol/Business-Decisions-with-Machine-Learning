@@ -1,5 +1,6 @@
 ---
 title: "02 Supervised ML"
+author: "Ahmad Nadeem Saigol"
 date: "2020-11-05"
 output:
   html_document:

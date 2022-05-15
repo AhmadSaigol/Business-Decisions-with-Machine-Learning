@@ -1,5 +1,6 @@
 ---
 title: "06 Deep Learning"
+author: "Ahmad Nadeem Saigol"
 date: "2020-11-05"
 output:
   html_document:

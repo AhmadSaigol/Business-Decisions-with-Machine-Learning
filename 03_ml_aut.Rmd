@@ -1,5 +1,6 @@
 ---
 title: "03 Automated Machine Learning with H20"
+author: "Ahmad Nadeem Saigol"
 date: "2020-11-05"
 output:
   html_document:

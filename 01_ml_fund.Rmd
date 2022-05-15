@@ -1,6 +1,6 @@
 ---
 title: "01 Machine Learning Fundamentals"
-author: "Joschka Schwarz"
+author: "Ahmad Nadeem Saigol"
 date: "2020-11-05"
 output:
   html_document:
