@@ -381,64 +381,301 @@ div.tocify {
 </div>
 
 
-<p><strong>IMPORTANT:</strong> You can delete everything in here and
-start fresh. You might want to start by not deleting anything above this
-line until you know what that stuff is doing.</p>
-<p>This is an <code>.Rmd</code> file. It is plain text with special
-features. Any time you write just like this, it will be compiled to
-normal text in the website. If you put a # in front of your text, it
-will create a top level-header.</p>
-<div id="my-first-post" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> My first post</h1>
-<p>Last compiled: 2022-06-15</p>
-<p>Notice that whatever you define as a top level header, automatically
-gets put into the table of contents bar on the left.</p>
-<div id="second-level-header" class="section level2" number="1.1">
-<h2><span class="header-section-number">1.1</span> Second level
-header</h2>
-<p>You can add more headers by adding more hashtags. These won’t be put
-into the table of contents</p>
-<div id="third-level-header" class="section level3" number="1.1.1">
-<h3><span class="header-section-number">1.1.1</span> third level
-header</h3>
-<p>Here’s an even lower level header</p>
+<div id="loading-libraries" class="section level2" number="0.1">
+<h2><span class="header-section-number">0.1</span> Loading
+Libraries</h2>
+<pre class="r"><code>options(knitr.duplicate.label = &quot;allow&quot;)
+library(h2o)
+library(recipes)
+library(readxl)
+library(tidyverse)
+library(tidyquant)
+library(lime)
+library(tools)
+library(rsample)</code></pre>
 </div>
+<div id="load-data" class="section level2" number="0.2">
+<h2><span class="header-section-number">0.2</span> Load Data</h2>
+<pre class="r"><code>employee_attrition_tbl &lt;- read_csv(&quot;new_raw_data/Business Decisions with Machine Learning/datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv&quot;)
+definitions_raw_tbl    &lt;- read_excel(&quot;new_raw_data/Business Decisions with Machine Learning/data_definitions.xlsx&quot;, sheet = 1, col_names = FALSE)</code></pre>
 </div>
+<div id="preprocessing" class="section level2" number="0.3">
+<h2><span class="header-section-number">0.3</span> Preprocessing</h2>
+<pre class="r"><code>process_hr_data_readable &lt;- function(data, definitions_tbl) {
+  
+  definitions_list &lt;- definitions_tbl %&gt;%
+    fill(...1, .direction = &quot;down&quot;) %&gt;%
+    filter(!is.na(...2)) %&gt;%
+    separate(...2, into = c(&quot;key&quot;, &quot;value&quot;), sep = &quot; &#39;&quot;, remove = TRUE) %&gt;%
+    rename(column_name = ...1) %&gt;%
+    mutate(key = as.numeric(key)) %&gt;%
+    mutate(value = value %&gt;% str_replace(pattern = &quot;&#39;&quot;, replacement = &quot;&quot;)) %&gt;%
+    split(.$column_name) %&gt;%
+    map(~ select(., -column_name)) %&gt;%
+    map(~ mutate(., value = as_factor(value))) 
+  
+  for (i in seq_along(definitions_list)) {
+    list_name &lt;- names(definitions_list)[i]
+    colnames(definitions_list[[i]]) &lt;- c(list_name, paste0(list_name, &quot;_value&quot;))
+  }
+  
+  data_merged_tbl &lt;- list(HR_Data = data) %&gt;%
+    append(definitions_list, after = 1) %&gt;%
+    reduce(left_join) %&gt;%
+    select(-one_of(names(definitions_list))) %&gt;%
+    set_names(str_replace_all(names(.), pattern = &quot;_value&quot;, 
+                              replacement = &quot;&quot;)) %&gt;%
+    select(sort(names(.))) %&gt;%
+    mutate_if(is.character, as.factor) %&gt;%
+    mutate(
+      BusinessTravel = BusinessTravel %&gt;% fct_relevel(&quot;Non-Travel&quot;, 
+                                                      &quot;Travel_Rarely&quot;, 
+                                                      &quot;Travel_Frequently&quot;),
+      MaritalStatus  = MaritalStatus %&gt;% fct_relevel(&quot;Single&quot;,                                                                                                 &quot;Married&quot;, 
+                                                     &quot;Divorced&quot;)
+    )
+  
+  return(data_merged_tbl)
+  
+}
+
+employee_attrition_readable_tbl &lt;- process_hr_data_readable(employee_attrition_tbl, definitions_raw_tbl)</code></pre>
 </div>
-<div id="my-second-post-note-the-order" class="section level1"
-number="2">
-<h1><span class="header-section-number">2</span> My second post (note
-the order)</h1>
-<p>Last compiled: 2022-06-15</p>
-<p>I’m writing this tutorial going from the top down. And, this is how
-it will be printed. So, notice the second post is second in the list. If
-you want your most recent post to be at the top, then make a new post
-starting at the top. If you want the oldest first, do, then keep adding
-to the bottom</p>
+<div id="splitting-data" class="section level2" number="0.4">
+<h2><span class="header-section-number">0.4</span> Splitting data</h2>
+<pre class="r"><code>set.seed(seed = 1113)
+split_obj &lt;- rsample::initial_split(employee_attrition_readable_tbl, prop = 0.85)
+
+train_readable_tbl &lt;- training(split_obj)
+test_readable_tbl  &lt;- testing(split_obj)
+
+recipe_obj &lt;- recipe(Attrition ~ ., data = train_readable_tbl) %&gt;%
+  step_zv(all_predictors()) %&gt;%
+  step_mutate_at(c(&quot;JobLevel&quot;, &quot;StockOptionLevel&quot;), fn = as.factor) %&gt;% 
+  prep()
+
+train_tbl &lt;- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  &lt;- bake(recipe_obj, new_data = test_readable_tbl)</code></pre>
+<pre class="r"><code>h2o.init()</code></pre>
+<pre><code>##  Connection successful!
+## 
+## R is connected to the H2O cluster: 
+##     H2O cluster uptime:         11 hours 17 minutes 
+##     H2O cluster timezone:       Europe/Berlin 
+##     H2O data parsing timezone:  UTC 
+##     H2O cluster version:        3.36.1.2 
+##     H2O cluster version age:    20 days  
+##     H2O cluster name:           H2O_started_from_R_ahmad_uit818 
+##     H2O cluster total nodes:    1 
+##     H2O cluster total memory:   3.04 GB 
+##     H2O cluster total cores:    16 
+##     H2O cluster allowed cores:  16 
+##     H2O cluster healthy:        TRUE 
+##     H2O Connection ip:          localhost 
+##     H2O Connection port:        54321 
+##     H2O Connection proxy:       NA 
+##     H2O Internal Security:      FALSE 
+##     R Version:                  R version 4.2.0 (2022-04-22)</code></pre>
+<pre class="r"><code>split_h2o &lt;- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>train_h2o &lt;- split_h2o[[1]]
+valid_h2o &lt;- split_h2o[[2]]
+test_h2o  &lt;- as.h2o(test_tbl)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
 </div>
-<div id="adding-r-stuff" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
-<p>So far this is just a blog where you can write in plain text and
-serve your writing to a webpage. One of the main purposes of this lab
-journal is to record your progress learning R. The reason I am asking
-you to use this process is because you can both make a website, and a
-lab journal, and learn R all in R-studio. This makes everything really
-convenient and in the same place.</p>
-<p>So, let’s say you are learning how to make a histogram in R. For
-example, maybe you want to sample 100 numbers from a normal distribution
-with mean = 0, and standard deviation = 1, and then you want to plot a
-histogram. You can do this right here by using an r code block, like
-this:</p>
-<pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
-hist(samples)</code></pre>
-<p><img src="05_lime_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>When you knit this R Markdown document, you will see that the
-histogram is printed to the page, along with the R code. This document
-can be set up to hide the R code in the webpage, just delete the comment
-(hashtag) from the cold folding option in the yaml header up top. For
-purposes of letting yourself see the code, and me see the code, best to
-keep it the way that it is. You’ll learn that all of these things and
-more can be customized in each R code block.</p>
+<div id="set-target-and-predictors" class="section level2" number="0.5">
+<h2><span class="header-section-number">0.5</span> Set target and
+predictors</h2>
+<pre class="r"><code>y &lt;- &quot;Attrition&quot;
+x &lt;- setdiff(names(train_h2o), y)
+
+automl_models_h2o &lt;- h2o.automl(
+  x = x,
+  y = y,
+  training_frame    = train_h2o,
+  validation_frame  = valid_h2o,
+  leaderboard_frame = test_h2o,
+  max_runtime_secs  = 30,
+  nfolds            = 5 
+)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |====                                                                  |   5%
+## 01:07:24.99: User specified a validation frame with cross-validation still enabled. Please note that the models will still be validated using cross-validation only, the validation frame will be used to provide purely informative validation metrics on the trained models.
+  |                                                                            
+  |==========                                                            |  14%
+  |                                                                            
+  |=============                                                         |  18%
+  |                                                                            
+  |==================                                                    |  26%
+  |                                                                            
+  |=====================                                                 |  30%
+  |                                                                            
+  |==========================                                            |  37%
+  |                                                                            
+  |===============================                                       |  44%
+  |                                                                            
+  |===================================                                   |  51%
+  |                                                                            
+  |========================================                              |  57%
+  |                                                                            
+  |=============================================                         |  64%
+  |                                                                            
+  |==================================================                    |  71%
+  |                                                                            
+  |======================================================                |  77%
+  |                                                                            
+  |===========================================================           |  84%
+  |                                                                            
+  |================================================================      |  91%
+  |                                                                            
+  |===================================================================== |  98%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="explainer" class="section level2" number="0.6">
+<h2><span class="header-section-number">0.6</span> Explainer</h2>
+<pre class="r"><code>explainer &lt;- train_tbl %&gt;%
+  select(-Attrition) %&gt;%
+  lime(
+    model           = automl_models_h2o@leader,
+    bin_continuous  = TRUE,
+    n_bins          = 4,
+    quantile_bins   = TRUE
+  )</code></pre>
+</div>
+<div id="explanation" class="section level2" number="0.7">
+<h2><span class="header-section-number">0.7</span> Explanation</h2>
+<pre class="r"><code>explanation &lt;- test_tbl %&gt;%
+  slice(1) %&gt;%
+  select(-Attrition) %&gt;%
+  lime::explain(
+    
+    explainer = explainer,
+    n_labels   = 1,
+    n_features = 8,
+    n_permutations = 5000,
+    kernel_width   = 1
+  )</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="part-1" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Part 1</h1>
+<pre class="r"><code>theme_lime &lt;- function(...) {
+  theme_minimal() +
+    theme(
+      strip.text = element_text(face = &#39;bold&#39;, size = 9),
+      plot.margin = margin(15, 15, 15, 15),
+      legend.background = element_blank(),
+      legend.key = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = &#39;bottom&#39;,
+      panel.spacing.y = unit(15, &#39;pt&#39;),
+      strip.text.x = element_text(margin = margin(t = 2, b = 2), hjust = 0),
+      axis.title.y = element_text(margin = margin(r = 10)),
+      axis.title.x = element_text(margin = margin(t = 10)),
+      ...
+    )
+}</code></pre>
+<pre class="r"><code>label_both_upper &lt;- function(labels, multi_line = TRUE, sep = &#39;: &#39;) {
+  names(labels) &lt;- toTitleCase(names(labels))
+  label_both(labels, multi_line, sep)
+}</code></pre>
+<pre class="r"><code>plot_features_in_explanation &lt;- function(explanation, ncol = 2, cases = NULL) {
+  type_pal &lt;- c(&#39;Supports&#39;, &#39;Contradicts&#39;)
+  
+  explanation$type &lt;- factor(ifelse(sign(explanation$feature_weight) == 1, type_pal[1], type_pal[2]), levels = type_pal)
+  description &lt;- paste0(explanation$case, &#39;_&#39;, explanation[[&#39;label&#39;]])
+  desc_width &lt;- max(nchar(description)) + 1
+  description &lt;- paste0(format(description, width = desc_width), explanation$feature_desc)
+  explanation$description &lt;- factor(description, levels = description[order(abs(explanation$feature_weight))])
+  explanation$case &lt;- factor(explanation$case, unique(explanation$case))
+  explanation$`Explanation fit` &lt;- format(explanation$model_r2, digits = 2)
+  
+  
+  explanation$probability &lt;- format(explanation$label_prob, digits = 2)
+  explanation$label &lt;- factor(explanation$label, unique(explanation$label[order(explanation$label_prob, decreasing = TRUE)]))
+  p &lt;- ggplot(explanation) +
+    facet_wrap(~ case + label + probability + `Explanation fit`, labeller = label_both_upper, scales = &#39;free_y&#39;, ncol = ncol)
+  
+  p +
+    geom_col(aes_(~description, ~feature_weight, fill = ~type)) +
+    coord_flip() +
+    scale_x_discrete(labels = function(lab) substr(lab, desc_width + 1, nchar(lab))) +
+    labs(y = &#39;Weight&#39;, x = &#39;Feature&#39;, fill = &#39;&#39;) +
+    theme_lime()
+}</code></pre>
+<pre class="r"><code>h &lt;- plot_features_in_explanation(explanation = explanation)
+h</code></pre>
+<p><img src="05_lime_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>explanation2 &lt;- test_tbl %&gt;%
+  slice(1:20) %&gt;%
+  select(-Attrition) %&gt;%
+  lime::explain(
+    explainer = explainer,
+    n_labels   = 1,
+    n_features = 8,
+    n_permutations = 5000,
+    kernel_width   = 0.5
+  )</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="part-2" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Part 2</h1>
+<pre class="r"><code>plot_explanations_data2 &lt;- function(explanation2, ...) {
+  num_cases &lt;- unique(suppressWarnings(as.numeric(explanation2$case)))
+  explanation2$case &lt;- factor(explanation2$case, levels = as.character(sort(num_cases)))
+  
+  explanation2$feature_desc &lt;- factor(
+    explanation2$feature_desc,
+    levels = rev(unique(explanation2$feature_desc[order(explanation2$feature, explanation2$feature_value)]))
+  )
+  p &lt;- ggplot(explanation2, aes_(~case, ~feature_desc)) +
+    geom_tile(aes_(fill = ~feature_weight)) +
+    scale_x_discrete(&#39;Case&#39;, expand = c(0, 0)) +
+    scale_y_discrete(&#39;Feature&#39;, expand = c(0, 0)) +
+    scale_fill_gradient2(&#39;Feature\nweight&#39;, low = &#39;firebrick&#39;, mid = &#39;#f7f7f7&#39;, high = &#39;steelblue&#39;) +
+    theme_lime() +
+    theme(panel.border = element_rect(fill = NA, colour = &#39;grey60&#39;, size = 1),
+          panel.grid = element_blank(),
+          legend.position = &#39;right&#39;,
+          axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  p + facet_wrap(~label, ...)
+  
+}
+
+plot_explanations_data2(explanation2)</code></pre>
+<p><img src="05_lime_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 </div>
 
 

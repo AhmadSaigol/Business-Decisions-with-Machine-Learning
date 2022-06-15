@@ -381,64 +381,600 @@ div.tocify {
 </div>
 
 
-<p><strong>IMPORTANT:</strong> You can delete everything in here and
-start fresh. You might want to start by not deleting anything above this
-line until you know what that stuff is doing.</p>
-<p>This is an <code>.Rmd</code> file. It is plain text with special
-features. Any time you write just like this, it will be compiled to
-normal text in the website. If you put a # in front of your text, it
-will create a top level-header.</p>
-<div id="my-first-post" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> My first post</h1>
-<p>Last compiled: 2022-06-15</p>
-<p>Notice that whatever you define as a top level header, automatically
-gets put into the table of contents bar on the left.</p>
-<div id="second-level-header" class="section level2" number="1.1">
-<h2><span class="header-section-number">1.1</span> Second level
-header</h2>
-<p>You can add more headers by adding more hashtags. These won’t be put
-into the table of contents</p>
-<div id="third-level-header" class="section level3" number="1.1.1">
-<h3><span class="header-section-number">1.1.1</span> third level
-header</h3>
-<p>Here’s an even lower level header</p>
+<div id="loading-libraries" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Loading Libraries</h1>
+<pre class="r"><code>library(h2o)
+library(cowplot)
+library(glue)
+library(rsample)
+library(recipes)</code></pre>
+</div>
+<div id="set-up-the-model" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Set up the Model</h1>
+<div id="loading-data" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Loading data</h2>
+<pre class="r"><code>products_backorders_tbl &lt;- read_csv(&quot;new_raw_data/Business Decisions with Machine Learning/product_backorders.csv&quot;)%&gt;%
+  mutate_if(is.character, as.factor)
+h2o.init()</code></pre>
+<pre><code>##  Connection successful!
+## 
+## R is connected to the H2O cluster: 
+##     H2O cluster uptime:         8 hours 36 minutes 
+##     H2O cluster timezone:       Europe/Berlin 
+##     H2O data parsing timezone:  UTC 
+##     H2O cluster version:        3.36.1.2 
+##     H2O cluster version age:    20 days  
+##     H2O cluster name:           H2O_started_from_R_ahmad_uit818 
+##     H2O cluster total nodes:    1 
+##     H2O cluster total memory:   3.34 GB 
+##     H2O cluster total cores:    16 
+##     H2O cluster allowed cores:  16 
+##     H2O cluster healthy:        TRUE 
+##     H2O Connection ip:          localhost 
+##     H2O Connection port:        54321 
+##     H2O Connection proxy:       NA 
+##     H2O Internal Security:      FALSE 
+##     R Version:                  R version 4.2.0 (2022-04-22)</code></pre>
+</div>
+<div id="splitting" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Splitting</h2>
+<pre class="r"><code>set.seed(seed = 1113)
+
+split_obj &lt;-initial_split(products_backorders_tbl, prop = 0.85)
+train_readable_tbl &lt;- training(split_obj)
+test_readable_tbl&lt;- testing(split_obj)
+
+
+recipe_obj &lt;- recipe(went_on_backorder ~., data = train_readable_tbl) %&gt;% 
+  step_zv(all_predictors()) %&gt;% 
+  prep()
+
+train_tbl &lt;- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  &lt;- bake(recipe_obj, new_data = test_readable_tbl)</code></pre>
+</div>
+<div id="h2o" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> H2O</h2>
+<pre class="r"><code>split_h2o &lt;- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>train_h2o &lt;- split_h2o[[1]]
+valid_h2o &lt;- split_h2o[[2]]
+test_h2o  &lt;- as.h2o(test_tbl)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>y &lt;- &quot;went_on_backorder&quot;
+x &lt;- setdiff(names(train_h2o), y)
+
+automl_models_h2o &lt;- h2o.automl(
+  x = x,
+  y = y,
+  training_frame    = train_h2o,
+  validation_frame  = valid_h2o,
+  leaderboard_frame = test_h2o,
+  max_runtime_secs  = 30,
+  nfolds            = 5 
+)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |==                                                                    |   3%
+## 22:19:01.731: User specified a validation frame with cross-validation still enabled. Please note that the models will still be validated using cross-validation only, the validation frame will be used to provide purely informative validation metrics on the trained models.
+  |                                                                            
+  |=======                                                               |  10%
+  |                                                                            
+  |============                                                          |  17%
+  |                                                                            
+  |=================                                                     |  24%
+  |                                                                            
+  |=====================                                                 |  30%
+  |                                                                            
+  |==========================                                            |  37%
+  |                                                                            
+  |===============================                                       |  44%
+  |                                                                            
+  |===================================                                   |  51%
+  |                                                                            
+  |========================================                              |  57%
+  |                                                                            
+  |=============================================                         |  64%
+  |                                                                            
+  |==================================================                    |  71%
+  |                                                                            
+  |======================================================                |  78%
+  |                                                                            
+  |===========================================================           |  84%
+  |                                                                            
+  |================================================================      |  91%
+  |                                                                            
+  |====================================================================  |  98%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
 </div>
 </div>
+<div id="leaderboard-visualization" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Leaderboard
+Visualization</h1>
+<pre class="r"><code>data_transformed_tbl &lt;- automl_models_h2o@leaderboard %&gt;%
+  as_tibble() %&gt;%
+  select(-c(aucpr, mean_per_class_error, rmse, mse)) %&gt;% 
+  mutate(model_type = str_extract(model_id, &quot;[^_]+&quot;)) %&gt;%
+  slice(1:15) %&gt;% 
+  rownames_to_column(var = &quot;rowname&quot;) %&gt;%
+  mutate(
+    model_id   = as_factor(model_id) %&gt;% reorder(auc),
+    model_type = as.factor(model_type)
+  ) %&gt;% 
+  pivot_longer(cols = -c(model_id, model_type, rowname), 
+               names_to = &quot;key&quot;, 
+               values_to = &quot;value&quot;, 
+               names_transform = list(key = forcats::fct_inorder)
+  ) %&gt;% 
+  mutate(model_id = paste0(rowname, &quot;. &quot;, model_id) %&gt;% as_factor() %&gt;% fct_rev())
+
+
+data_transformed_tbl %&gt;%
+  ggplot(aes(value, model_id, color = model_type)) +
+  geom_point(size = 3) +
+  geom_label(aes(label = round(value, 2), hjust = &quot;inward&quot;)) +
+  
+  # Facet to break out logloss and auc
+  facet_wrap(~ key, scales = &quot;free_x&quot;) +
+  labs(title = &quot;Leaderboard Metrics&quot;,
+       subtitle = paste0(&quot;Ordered by: &quot;, &quot;auc&quot;),
+       y = &quot;Model Postion, Model ID&quot;, x = &quot;&quot;) + 
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 </div>
-<div id="my-second-post-note-the-order" class="section level1"
-number="2">
-<h1><span class="header-section-number">2</span> My second post (note
-the order)</h1>
-<p>Last compiled: 2022-06-15</p>
-<p>I’m writing this tutorial going from the top down. And, this is how
-it will be printed. So, notice the second post is second in the list. If
-you want your most recent post to be at the top, then make a new post
-starting at the top. If you want the oldest first, do, then keep adding
-to the bottom</p>
+<div id="grid-search" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Grid Search</h1>
+<pre class="r"><code>model_grid &lt;- h2o.grid(
+  algorithm = &quot;deeplearning&quot;,
+  grid_id = &quot;model_grid_01&quot;,
+  x = x,
+  y = y,
+  training_frame   = train_h2o,
+  validation_frame = valid_h2o,
+  nfolds = 5,
+  hyper_params = list(
+    hidden = list(c(10, 10, 10), c(50, 20, 10), c(20, 20, 20)),
+    epochs = c(10, 50, 100)
+  )
+)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>grid &lt;- h2o.getGrid(grid_id = &quot;model_grid_01&quot;, sort_by = &quot;auc&quot;, decreasing = TRUE)
+
+model_grid_1 &lt;- h2o.getModel(grid@model_ids[[1]])
+
+model_grid_1 %&gt;% h2o.auc(train = T, valid = T, xval = T)</code></pre>
+<pre><code>##     train     valid      xval 
+## 0.9168514 0.8954214 0.9023896</code></pre>
+<pre class="r"><code>model_grid_1 %&gt;%
+  h2o.performance(newdata = as.h2o(test_tbl))</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre><code>## H2OBinomialMetrics: deeplearning
+## 
+## MSE:  0.07623645
+## RMSE:  0.2761095
+## LogLoss:  0.284698
+## Mean Per-Class Error:  0.2484529
+## AUC:  0.875836
+## AUCPR:  0.5486351
+## Gini:  0.751672
+## 
+## Confusion Matrix (vertical: actual; across: predicted) for F1-optimal threshold:
+##          No Yes    Error       Rate
+## No     2361 153 0.060859  =153/2514
+## Yes     150 194 0.436047   =150/344
+## Totals 2511 347 0.106018  =303/2858
+## 
+## Maximum Metrics: Maximum metrics at their respective thresholds
+##                         metric threshold       value idx
+## 1                       max f1  0.453443    0.561505 140
+## 2                       max f2  0.164188    0.639029 267
+## 3                 max f0point5  0.649834    0.606061  75
+## 4                 max accuracy  0.649834    0.906928  75
+## 5                max precision  0.949354    1.000000   0
+## 6                   max recall  0.000048    1.000000 399
+## 7              max specificity  0.949354    1.000000   0
+## 8             max absolute_mcc  0.523421    0.507392 117
+## 9   max min_per_class_accuracy  0.175630    0.793605 260
+## 10 max mean_per_class_accuracy  0.164188    0.800511 267
+## 11                     max tns  0.949354 2514.000000   0
+## 12                     max fns  0.949354  343.000000   0
+## 13                     max fps  0.000048 2514.000000 399
+## 14                     max tps  0.000048  344.000000 399
+## 15                     max tnr  0.949354    1.000000   0
+## 16                     max fnr  0.949354    0.997093   0
+## 17                     max fpr  0.000048    1.000000 399
+## 18                     max tpr  0.000048    1.000000 399
+## 
+## Gains/Lift Table: Extract with `h2o.gainsLift(&lt;model&gt;, &lt;data&gt;)` or `h2o.gainsLift(&lt;model&gt;, valid=&lt;T/F&gt;, xval=&lt;T/F&gt;)`</code></pre>
 </div>
-<div id="adding-r-stuff" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
-<p>So far this is just a blog where you can write in plain text and
-serve your writing to a webpage. One of the main purposes of this lab
-journal is to record your progress learning R. The reason I am asking
-you to use this process is because you can both make a website, and a
-lab journal, and learn R all in R-studio. This makes everything really
-convenient and in the same place.</p>
-<p>So, let’s say you are learning how to make a histogram in R. For
-example, maybe you want to sample 100 numbers from a normal distribution
-with mean = 0, and standard deviation = 1, and then you want to plot a
-histogram. You can do this right here by using an r code block, like
-this:</p>
-<pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
-hist(samples)</code></pre>
-<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>When you knit this R Markdown document, you will see that the
-histogram is printed to the page, along with the R code. This document
-can be set up to hide the R code in the webpage, just delete the comment
-(hashtag) from the cold folding option in the yaml header up top. For
-purposes of letting yourself see the code, and me see the code, best to
-keep it the way that it is. You’ll learn that all of these things and
-more can be customized in each R code block.</p>
+<div id="tradeoff-between-precision-and-recall" class="section level1"
+number="5">
+<h1><span class="header-section-number">5</span> Tradeoff between
+Precision and Recall</h1>
+<pre class="r"><code>extract_model &lt;- automl_models_h2o@leaderboard %&gt;% 
+  as.tibble() %&gt;%
+  slice(1) %&gt;%
+  pull(1) %&gt;% 
+  h2o.getModel()
+
+performance_h2o &lt;- h2o.performance(extract_model, newdata = as.h2o(test_tbl))</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>performance_tbl &lt;- performance_h2o %&gt;%
+  h2o.metric() %&gt;%
+  as.tibble() 
+
+performance_tbl %&gt;%
+  filter(f1 == max(f1))</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["threshold"],"name":[1],"type":["dbl"],"align":["right"]},{"label":["f1"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["f2"],"name":[3],"type":["dbl"],"align":["right"]},{"label":["f0point5"],"name":[4],"type":["dbl"],"align":["right"]},{"label":["accuracy"],"name":[5],"type":["dbl"],"align":["right"]},{"label":["precision"],"name":[6],"type":["dbl"],"align":["right"]},{"label":["recall"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["specificity"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["absolute_mcc"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["min_per_class_accuracy"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["mean_per_class_accuracy"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["tns"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["fns"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["fps"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["tps"],"name":[15],"type":["dbl"],"align":["right"]},{"label":["tnr"],"name":[16],"type":["dbl"],"align":["right"]},{"label":["fnr"],"name":[17],"type":["dbl"],"align":["right"]},{"label":["fpr"],"name":[18],"type":["dbl"],"align":["right"]},{"label":["tpr"],"name":[19],"type":["dbl"],"align":["right"]},{"label":["idx"],"name":[20],"type":["int"],"align":["right"]}],"data":[{"1":"0.2418052","2":"0.7024266","3":"0.7575758","4":"0.6547619","5":"0.9184745","6":"0.6264237","7":"0.7994186","8":"0.9347653","9":"0.6625468","10":"0.7994186","11":"0.867092","12":"2350","13":"69","14":"164","15":"275","16":"0.9347653","17":"0.2005814","18":"0.06523469","19":"0.7994186","20":"223"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code>theme_new &lt;-theme(
+  legend.position  = &quot;bottom&quot;,
+  legend.key       = element_blank(),
+  panel.background = element_rect(fill   = &quot;transparent&quot;),
+  panel.border     = element_rect(color = &quot;black&quot;, fill = NA, size = 0.5),
+  panel.grid.major = element_line(color = &quot;grey&quot;, size = 0.333)
+)
+
+performance_tbl %&gt;%
+  ggplot(aes(x = threshold)) +
+  geom_line(aes(y = precision), color = &quot;blue&quot;, size = 1) +
+  geom_line(aes(y = recall), color = &quot;red&quot;, size = 1) +
+  geom_vline(xintercept = h2o.find_threshold_by_max_metric(performance_h2o, &quot;f1&quot;)) +
+  labs(title = &quot;Precision vs Recall&quot;, y = &quot;value&quot;) +
+  theme_new</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+<div id="roc-plot" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> ROC plot</h1>
+<pre class="r"><code>load_model_performance_metrics &lt;- function(model_id, test_tbl) {
+  
+  model_h2o &lt;- h2o.getModel(model_id)
+  perf_h2o  &lt;- h2o.performance(model_h2o, newdata = as.h2o(test_tbl)) 
+  
+  perf_h2o %&gt;%
+    h2o.metric() %&gt;%
+    as_tibble() %&gt;%
+    mutate(auc = h2o.auc(perf_h2o)) %&gt;%
+    select(tpr, fpr, auc)
+  
+}
+
+leaderboard_tbl &lt;- automl_models_h2o@leaderboard %&gt;%
+  as_tibble() %&gt;%
+  slice(1:3)
+
+model_metrics_tbl &lt;- leaderboard_tbl %&gt;%
+  mutate(metrics = map(model_id, load_model_performance_metrics, test_tbl)) %&gt;%
+  rename(AUC = auc) %&gt;%
+  unnest(cols = metrics)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>model_metrics_tbl %&gt;%
+  mutate(
+    
+    auc  = auc %&gt;%  as.character() %&gt;% as_factor()
+  ) %&gt;%
+  ggplot(aes(fpr, tpr, color = model_id, linetype = auc)) +
+  geom_line(size = 1) +
+  geom_abline(color = &quot;red&quot;, linetype = &quot;dotted&quot;) +
+  
+  theme_new +
+  theme(
+    legend.direction = &quot;vertical&quot;,
+  ) +
+  labs(
+    title = &quot;ROC Plot&quot;,
+    subtitle = &quot;Performance of 3 Top Performing Models&quot;
+  )</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-8-1.png" width="672" />
+# Precision vs Recall Plot</p>
+<pre class="r"><code>get_model_performance_metrics_recall_precision &lt;- function(model_id, test_tbl) {
+  
+  model_h2o &lt;- h2o.getModel(model_id)
+  perf_h2o  &lt;- h2o.performance(model_h2o, newdata = as.h2o(test_tbl)) 
+  
+  perf_h2o %&gt;%
+    h2o.metric() %&gt;%
+    as_tibble() %&gt;%
+    mutate(auc = h2o.auc(perf_h2o)) %&gt;%
+    select(tpr, fpr, auc, precision, recall)
+}
+
+model_metrics_pre_recall_tbl &lt;- leaderboard_tbl %&gt;%
+  mutate(metrics = map(model_id, get_model_performance_metrics_recall_precision, test_tbl)) %&gt;%
+  rename(AUC = auc) %&gt;%
+  unnest(cols = metrics)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%
+## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>model_metrics_pre_recall_tbl %&gt;%
+  mutate(
+    auc  = auc %&gt;%  as.character() %&gt;% as_factor()
+  ) %&gt;%
+  ggplot(aes(recall, precision, color = model_id, linetype = auc)) +
+  geom_line(size = 1) +
+  theme_new + 
+  theme(
+    legend.direction = &quot;vertical&quot;,
+  ) +
+  labs(
+    title = &quot;Precision vs Recall Plot&quot;,
+    subtitle = &quot;Performance of 3 Top Performing Models&quot;
+  )</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-9-1.png" width="672" />
+# Gain Plot</p>
+<pre class="r"><code>performance_h2o &lt;- h2o.performance(extract_model, newdata = as.h2o(test_tbl))</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code>gain_lift_tbl &lt;- performance_h2o %&gt;%
+  h2o.gainsLift() %&gt;%
+  as.tibble()
+
+gain_transformed_tbl &lt;- gain_lift_tbl %&gt;% 
+  select(group, cumulative_data_fraction, cumulative_capture_rate, cumulative_lift) %&gt;%
+  select(-contains(&quot;lift&quot;)) %&gt;%
+  mutate(baseline = cumulative_data_fraction) %&gt;%
+  rename(gain     = cumulative_capture_rate) %&gt;%
+  pivot_longer(cols = c(gain, baseline), values_to = &quot;value&quot;, names_to = &quot;key&quot;)
+
+gain_transformed_tbl %&gt;%
+  ggplot(aes(x = cumulative_data_fraction, y = value, color = key)) +
+  geom_line(size = 1.5) +
+  labs(
+    title = &quot;Gain Chart&quot;,
+    x = &quot;Cumulative Data Fraction&quot;,
+    y = &quot;Gain&quot;
+  ) +
+  theme_new</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-10-1.png" width="672" />
+# Lift Plot</p>
+<pre class="r"><code>lift_transformed_tbl &lt;- gain_lift_tbl %&gt;% 
+  select(group, cumulative_data_fraction, cumulative_capture_rate, cumulative_lift) %&gt;%
+  select(-contains(&quot;capture&quot;)) %&gt;%
+  mutate(baseline = 1) %&gt;%
+  rename(lift = cumulative_lift) %&gt;%
+  pivot_longer(cols = c(lift, baseline), values_to = &quot;value&quot;, names_to = &quot;key&quot;)
+
+lift_transformed_tbl %&gt;%
+  ggplot(aes(x = cumulative_data_fraction, y = value, color = key)) +
+  geom_line(size = 1.5) +
+  labs(
+    title = &quot;Lift Chart&quot;,
+    x = &quot;Cumulative Data Fraction&quot;,
+    y = &quot;Lift&quot;
+  ) +
+  theme_new</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="dashboard-with-cowplot" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Dashboard with
+Cowplot</h1>
+<pre class="r"><code>plot_h2o_performance &lt;- function(h2o_leaderboard, newdata, order_by = c(&quot;auc&quot;, &quot;logloss&quot;),
+                                 max_models = 3, size = 1.5) {
+  
+  leaderboard_tbl &lt;- h2o_leaderboard %&gt;%
+    as_tibble() %&gt;%
+    slice(1:max_models)
+  
+  newdata_tbl &lt;- newdata %&gt;%
+    as_tibble()
+  
+  order_by      &lt;- tolower(order_by[[1]]) 
+  
+  order_by_expr &lt;- rlang::sym(order_by)
+  
+  h2o.no_progress()
+  
+  # 1. Model metrics
+  
+  get_model_performance_metrics &lt;- function(model_id, test_tbl) {
+    
+    model_h2o &lt;- h2o.getModel(model_id)
+    perf_h2o  &lt;- h2o.performance(model_h2o, newdata = as.h2o(test_tbl))
+    
+    perf_h2o %&gt;%
+      h2o.metric() %&gt;%
+      as.tibble() %&gt;%
+      select(threshold, tpr, fpr, precision, recall)
+    
+  }
+  
+  model_metrics_tbl &lt;- leaderboard_tbl %&gt;%
+    mutate(metrics = map(model_id, get_model_performance_metrics, newdata_tbl)) %&gt;%
+    unnest(cols = metrics) %&gt;%
+    mutate(
+      model_id = as_factor(model_id) %&gt;% 
+        # programmatically reorder factors depending on order_by
+        fct_reorder(!! order_by_expr, 
+                    .desc = ifelse(order_by == &quot;auc&quot;, TRUE, FALSE)),
+      auc      = auc %&gt;% 
+        round(3) %&gt;% 
+        as.character() %&gt;% 
+        as_factor() %&gt;% 
+        fct_reorder(as.numeric(model_id)),
+      logloss  = logloss %&gt;% 
+        round(4) %&gt;% 
+        as.character() %&gt;% 
+        as_factor() %&gt;% 
+        fct_reorder(as.numeric(model_id))
+    )
+  
+  
+  #1A. ROC Plot
+  
+  p1 &lt;- model_metrics_tbl %&gt;%
+    ggplot(aes(fpr, tpr, color = model_id, linetype = !! order_by_expr)) +
+    geom_line(size = size) +
+    theme_new +
+    labs(title = &quot;ROC&quot;, x = &quot;FPR&quot;, y = &quot;TPR&quot;) +
+    theme(legend.direction = &quot;vertical&quot;) 
+  
+  
+  #1B. Precision vs Recall
+  
+  p2 &lt;- model_metrics_tbl %&gt;%
+    ggplot(aes(recall, precision, color = model_id, linetype = !! order_by_expr)) +
+    geom_line(size = size) +
+    theme_new +
+    labs(title = &quot;Precision Vs Recall&quot;, x = &quot;Recall&quot;, y = &quot;Precision&quot;) +
+    theme(legend.position = &quot;none&quot;) 
+  
+  
+  # 2. Gain / Lift
+  
+  get_gain_lift &lt;- function(model_id, test_tbl) {
+    
+    model_h2o &lt;- h2o.getModel(model_id)
+    perf_h2o  &lt;- h2o.performance(model_h2o, newdata = as.h2o(test_tbl)) 
+    
+    perf_h2o %&gt;%
+      h2o.gainsLift() %&gt;%
+      as.tibble() %&gt;%
+      select(group, cumulative_data_fraction, cumulative_capture_rate, cumulative_lift)
+    
+  }
+  
+  gain_lift_tbl &lt;- leaderboard_tbl %&gt;%
+    mutate(metrics = map(model_id, get_gain_lift, newdata_tbl)) %&gt;%
+    unnest(cols = metrics) %&gt;%
+    mutate(
+      model_id = as_factor(model_id) %&gt;% 
+        fct_reorder(!! order_by_expr, 
+                    .desc = ifelse(order_by == &quot;auc&quot;, TRUE, FALSE)),
+      auc  = auc %&gt;% 
+        round(3) %&gt;% 
+        as.character() %&gt;% 
+        as_factor() %&gt;% 
+        fct_reorder(as.numeric(model_id)),
+      logloss = logloss %&gt;% 
+        round(4) %&gt;% 
+        as.character() %&gt;% 
+        as_factor() %&gt;% 
+        fct_reorder(as.numeric(model_id))
+    ) %&gt;%
+    rename(
+      gain = cumulative_capture_rate,
+      lift = cumulative_lift
+    ) 
+  
+  # 2A. Gain Plot
+  
+  p3 &lt;- gain_lift_tbl %&gt;%
+    ggplot(aes(cumulative_data_fraction, gain, 
+               color = model_id, linetype = !! order_by_expr)) +
+    geom_line(size = size,) +
+    geom_segment(x = 0, y = 0, xend = 1, yend = 1, 
+                 color = &quot;red&quot;, size = size, linetype = &quot;dotted&quot;) +
+    theme_new +
+    expand_limits(x = c(0, 1), y = c(0, 1)) +
+    labs(title = &quot;Gain&quot;,
+         x = &quot;Cumulative Data Fraction&quot;, y = &quot;Gain&quot;) +
+    theme(legend.position = &quot;none&quot;)
+  
+  # 2B. Lift Plot
+  
+  p4 &lt;- gain_lift_tbl %&gt;%
+    ggplot(aes(cumulative_data_fraction, lift, 
+               color = model_id, linetype = !! order_by_expr)) +
+    geom_line(size = size) +
+    geom_segment(x = 0, y = 1, xend = 1, yend = 1, 
+                 color = &quot;red&quot;, size = size, linetype = &quot;dotted&quot;) +
+    theme_new +
+    expand_limits(x = c(0, 1), y = c(0, 1)) +
+    labs(title = &quot;Lift&quot;,
+         x = &quot;Cumulative Data Fraction&quot;, y = &quot;Lift&quot;) +
+    theme(legend.position = &quot;none&quot;) 
+  
+  
+  # Combine using cowplot
+  
+  # cowplot::get_legend extracts a legend from a ggplot object
+  p_legend &lt;- get_legend(p1)
+  # Remove legend from p1
+  p1 &lt;- p1 + theme(legend.position = &quot;none&quot;)
+  
+  # cowplot::plt_grid() combines multiple ggplots into a single cowplot object
+  p &lt;- cowplot::plot_grid(p1, p2, p3, p4, ncol = 2)
+  
+  # cowplot::ggdraw() sets up a drawing layer
+  p_title &lt;- ggdraw() + 
+    
+    # cowplot::draw_label() draws text on a ggdraw layer / ggplot object
+    draw_label(&quot;H2O Model Metrics&quot;, size = 18, fontface = &quot;bold&quot;, 
+               color = &quot;#2C3E50&quot;)
+  
+  p_subtitle &lt;- ggdraw() + 
+    draw_label(glue(&quot;Ordered by {toupper(order_by)}&quot;), size = 10,  
+               color = &quot;#2C3E50&quot;)
+  
+  # Combine everything
+  ret &lt;- plot_grid(p_title, p_subtitle, p, p_legend, 
+                   
+                   # Adjust the relative spacing, so that the legends always fits
+                   ncol = 1, rel_heights = c(0.05, 0.05, 1, 0.05 * max_models))
+  
+  h2o.show_progress()
+  
+  return(ret)
+  
+}</code></pre>
+<pre class="r"><code>automl_models_h2o@leaderboard %&gt;%
+  plot_h2o_performance(newdata = test_tbl, order_by = &quot;auc&quot;, 
+                       size = 0.5, max_models = 3)</code></pre>
+<p><img src="04_perf_meas_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 </div>
 
 

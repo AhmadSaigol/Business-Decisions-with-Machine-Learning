@@ -137,6 +137,7 @@ c. It's difficult to deduce anything based on the visualization.
 
 
 <b>9. What can you deduce about the interaction between Years At Company and Attrition?</b> 
+
 a. People that leave tend to have more working years at the company.
 b. <font color=red>People that leave tend to have less working years at the company.</font>
 c. It's difficult to deduce anything based on the visualization.
@@ -151,9 +152,71 @@ c. <font color=red>It's difficult to deduce anything based on the visualization.
 # Part 2
 ## Loading Libraries
 ```{r}
+library(rsample)
+library(h2o)
+library(recipes)
+```
+## Loading data
+```{r}
+products_backorders_tbl <- read_csv("new_raw_data/Business Decisions with Machine Learning/product_backorders.csv")
+```
+## Splitting
+```{r}
+
+set.seed(seed = 1113)
+
+split_obj <-initial_split(products_backorders_tbl, prop = 0.85)
+train_readable_tbl <- training(split_obj)
+test_readable_tbl<- testing(split_obj)
+
+
+recipe_obj <- recipe(went_on_backorder ~., data = train_readable_tbl) %>% 
+  step_zv(all_predictors()) %>% 
+  prep()
+
+train_tbl <- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  <- bake(recipe_obj, new_data = test_readable_tbl)
 
 ```
 
+## H2O
 ```{r}
+h2o.init()
+split_h2o <- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)
+train_h2o <- split_h2o[[1]]
+valid_h2o <- split_h2o[[2]]
+test_h2o  <- as.h2o(test_tbl)
 
+y <- "went_on_backorder"
+x <- setdiff(names(train_h2o), y)
+
+automl_models_h2o <- h2o.automl(
+  x = x,
+  y = y,
+  training_frame    = train_h2o,
+  validation_frame  = valid_h2o,
+  leaderboard_frame = test_h2o,
+  max_runtime_secs  = 30,
+  nfolds            = 5 
+)
+```
+
+
+
+## Leaderboard
+```{r}
+automl_models_h2o@leaderboard
+```
+
+## Prediction
+```{r}
+automl_models_h2o@leader
+predictions <- h2o.predict(automl_models_h2o@leader, newdata = as.h2o(test_tbl))
+predictions_tbl <- predictions %>% as_tibble()
+
+predictions_tbl %>%  head()
+```
+## Saving model
+```{r}
+automl_models_h2o@leader %>% h2o.saveModel(path = "src/ch6/h20_models/")
 ```
