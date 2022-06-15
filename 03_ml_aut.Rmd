@@ -73,6 +73,7 @@ employee_attrition_tbl %>%
   select(Attrition,  contains("years")) %>%
   plot_ggpairs(Attrition)
 ```
+
 ## Questions
 
 
@@ -94,57 +95,58 @@ d. <font color=red>It's difficult to deduce anything based on the visualization<
 
 <b>3. What can you deduce about the interaction between Stock Option Level and Attrition?</b>
 
-a. Those that are leaving the company have a higher stock option level
-b. <font color=red>Those that are staying have a higher stock option level</font>
-c. It's difficult to deduce anything based on the visualization
+a. Those that are leaving the company have a higher stock option level.
+b. <font color=red>Those that are staying have a higher stock option level.</font>
+c. It's difficult to deduce anything based on the visualization.
 
 
 <b>4. What can you deduce about the interaction between Environment Satisfaction and Attrition?</b> 
 
-a.A higher proportion of those leaving have a low environment satisfaction level
-b. A higher proportion of those leaving have a high environment satisfaction level
-c. <font color=red>It's difficult to deduce anything based on the visualization</font>
+a. A higher proportion of those leaving have a low environment satisfaction level.
+b. A higher proportion of those leaving have a high environment satisfaction level.
+c. <font color=red>It's difficult to deduce anything based on the visualization.</font>
 
 
 <b>5. What can you deduce about the interaction between Work Life Balance and Attrition</b> 
-a. Those that are leaving have higher density of 2's and 3's
-b. <font color=red>Those that are staying have a higher density of 2's and 3's</font>
-c. Those that are staying have a lower density of 2's and 3's
-d. It's difficult to deduce anything based on the visualization
+
+a. Those that are leaving have higher density of 2's and 3's.
+b. <font color=red>Those that are staying have a higher density of 2's and 3's.</font>
+c. Those that are staying have a lower density of 2's and 3's.
+d. It's difficult to deduce anything based on the visualization.
 
 
 <b>6. What Can you deduce about the interaction between Job Involvement and Attrition?</b>
 
-a.Those that are leaving have a lower density of 3's and 4's
-b. Those that are leaving have a lower density of 1's and 2's
-c. Those that are staying have a lower density of 2's and 3's
-d. <font color=red>It's difficult to deduce anything based on the visualization</font>
+a. Those that are leaving have a lower density of 3's and 4's.
+b. Those that are leaving have a lower density of 1's and 2's.
+c. Those that are staying have a lower density of 2's and 3's.
+d. <font color=red>It's difficult to deduce anything based on the visualization.</font>
 
 
 <b>7. What can you deduce about the interaction between Over Time and Attrition?</b>
 
-a. The proportion of those leaving that are working Over Time are high compared to those that are not leaving
-b. <font color=red>The proportion of those staying that are working Over Time are high compared to those that are not staying</font>
+a. The proportion of those leaving that are working Over Time are high compared to those that are not leaving.
+b. <font color=red>The proportion of those staying that are working Over Time are high compared to those that are not staying.</font>
 
 
 <b>8. What can you deduce about the interaction between Training Times Last Year and Attrition?</b>
 
-a. People that leave tend to have more annual training
-b. <font color=red>People that leave tend to have less annual training</font>
-c. It's difficult to deduce anything based on the visualization
+a. People that leave tend to have more annual training.
+b. <font color=red>People that leave tend to have less annual training.</font>
+c. It's difficult to deduce anything based on the visualization.
 
 
 <b>9. What can you deduce about the interaction between Years At Company and Attrition?</b> 
-a. People that leave tend to have more working years at the company
-b. <font color=red>People that leave tend to have less working years at the company</font>
-c. It's difficult to deduce anything based on the visualization
+a. People that leave tend to have more working years at the company.
+b. <font color=red>People that leave tend to have less working years at the company.</font>
+c. It's difficult to deduce anything based on the visualization.
 
 
 <b>10. What can you deduce about the interaction between Years Since Last Promotion and Attrition?</b>
 
-a. Those that are leaving have more years since last promotion than those that are staying
-b. Those that are leaving have fewer years since last promotion than those that are staying
-c. <font color=red>It's difficult to deduce anything based on the visualization</font>
+a. Those that are leaving have more years since last promotion than those that are staying.
+b. Those that are leaving have fewer years since last promotion than those that are staying.
+c. <font color=red>It's difficult to deduce anything based on the visualization.</font>
 
 # Part 2
 ## Loading Libraries
@@ -153,6 +155,5 @@ c. <font color=red>It's difficult to deduce anything based on the visualization<
 ```
 
 ```{r}
-samples <- rnorm(100, mean=0, sd=1)
-hist(samples)
+
 ```

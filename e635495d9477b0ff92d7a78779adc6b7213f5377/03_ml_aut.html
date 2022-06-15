@@ -434,8 +434,10 @@ Questions</h2>
 <pre class="r"><code>employee_attrition_tbl %&gt;%
   select(Attrition,  contains(&quot;years&quot;)) %&gt;%
   plot_ggpairs(Attrition)</code></pre>
-<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-7-1.png" width="672" />
-## Questions</p>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+<div id="questions" class="section level2" number="1.5">
+<h2><span class="header-section-number">1.5</span> Questions</h2>
 <p><b>1. What can you deduce about the interaction between Monthly
 Income and Attrition?</b></p>
 <ol style="list-style-type: lower-alpha">
@@ -459,59 +461,69 @@ visualization</font></li>
 Level and Attrition?</b></p>
 <ol style="list-style-type: lower-alpha">
 <li>Those that are leaving the company have a higher stock option
-level</li>
+level.</li>
 <li><font color=red>Those that are staying have a higher stock option
-level</font></li>
-<li>It’s difficult to deduce anything based on the visualization</li>
+level.</font></li>
+<li>It’s difficult to deduce anything based on the visualization.</li>
 </ol>
 <p><b>4. What can you deduce about the interaction between Environment
 Satisfaction and Attrition?</b></p>
-<p>a.A higher proportion of those leaving have a low environment
-satisfaction level b. A higher proportion of those leaving have a high
-environment satisfaction level c. <font color=red>It’s difficult to
-deduce anything based on the visualization</font></p>
+<ol style="list-style-type: lower-alpha">
+<li>A higher proportion of those leaving have a low environment
+satisfaction level.</li>
+<li>A higher proportion of those leaving have a high environment
+satisfaction level.</li>
+<li><font color=red>It’s difficult to deduce anything based on the
+visualization.</font></li>
+</ol>
 <p><b>5. What can you deduce about the interaction between Work Life
-Balance and Attrition</b> a. Those that are leaving have higher density
-of 2’s and 3’s b. <font color=red>Those that are staying have a higher
-density of 2’s and 3’s</font> c. Those that are staying have a lower
-density of 2’s and 3’s d. It’s difficult to deduce anything based on the
-visualization</p>
+Balance and Attrition</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving have higher density of 2’s and 3’s.</li>
+<li><font color=red>Those that are staying have a higher density of 2’s
+and 3’s.</font></li>
+<li>Those that are staying have a lower density of 2’s and 3’s.</li>
+<li>It’s difficult to deduce anything based on the visualization.</li>
+</ol>
 <p><b>6. What Can you deduce about the interaction between Job
 Involvement and Attrition?</b></p>
-<p>a.Those that are leaving have a lower density of 3’s and 4’s b. Those
-that are leaving have a lower density of 1’s and 2’s c. Those that are
-staying have a lower density of 2’s and 3’s d. <font color=red>It’s
-difficult to deduce anything based on the visualization</font></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving have a lower density of 3’s and 4’s.</li>
+<li>Those that are leaving have a lower density of 1’s and 2’s.</li>
+<li>Those that are staying have a lower density of 2’s and 3’s.</li>
+<li><font color=red>It’s difficult to deduce anything based on the
+visualization.</font></li>
+</ol>
 <p><b>7. What can you deduce about the interaction between Over Time and
 Attrition?</b></p>
 <ol style="list-style-type: lower-alpha">
 <li>The proportion of those leaving that are working Over Time are high
-compared to those that are not leaving</li>
+compared to those that are not leaving.</li>
 <li><font color=red>The proportion of those staying that are working
-Over Time are high compared to those that are not staying</font></li>
+Over Time are high compared to those that are not staying.</font></li>
 </ol>
 <p><b>8. What can you deduce about the interaction between Training
 Times Last Year and Attrition?</b></p>
 <ol style="list-style-type: lower-alpha">
-<li>People that leave tend to have more annual training</li>
+<li>People that leave tend to have more annual training.</li>
 <li><font color=red>People that leave tend to have less annual
-training</font></li>
-<li>It’s difficult to deduce anything based on the visualization</li>
+training.</font></li>
+<li>It’s difficult to deduce anything based on the visualization.</li>
 </ol>
 <p><b>9. What can you deduce about the interaction between Years At
 Company and Attrition?</b> a. People that leave tend to have more
-working years at the company b. <font color=red>People that leave tend
-to have less working years at the company</font> c. It’s difficult to
-deduce anything based on the visualization</p>
+working years at the company. b. <font color=red>People that leave tend
+to have less working years at the company.</font> c. It’s difficult to
+deduce anything based on the visualization.</p>
 <p><b>10. What can you deduce about the interaction between Years Since
 Last Promotion and Attrition?</b></p>
 <ol style="list-style-type: lower-alpha">
 <li>Those that are leaving have more years since last promotion than
-those that are staying</li>
+those that are staying.</li>
 <li>Those that are leaving have fewer years since last promotion than
-those that are staying</li>
+those that are staying.</li>
 <li><font color=red>It’s difficult to deduce anything based on the
-visualization</font></li>
+visualization.</font></li>
 </ol>
 </div>
 </div>
@@ -520,9 +532,6 @@ visualization</font></li>
 <div id="loading-libraries-1" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> Loading
 Libraries</h2>
-<pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
-hist(samples)</code></pre>
-<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
 </div>
 </div>
 
