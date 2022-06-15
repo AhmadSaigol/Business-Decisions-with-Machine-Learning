@@ -16,40 +16,143 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 ```
+# Part 1
 
-**IMPORTANT:** You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.
+## Loading Libraries
+```{r}
+library(GGally)
+```
 
-This is an `.Rmd` file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a \# in front of your text, it will create a top level-header.
+## Loading Data
+```{r}
+employee_attrition_tbl <- read_csv("new_raw_data/Business Decisions with Machine Learning/datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv")
+```
 
-# My first post
+## Plotting Helper Functions
+```{r}
+plot_ggpairs <- function(data, color = NULL, density_alpha = 0.5) {
+    color_expr <- enquo(color)
+    
+    if (rlang::quo_is_null(color_expr)) {
+        g <- data %>%
+            ggpairs(lower = "blank") 
+    } else {
+        color_name <- quo_name(color_expr)
+        g <- data %>%
+            ggpairs(mapping = aes_string(color = color_name), 
+                    lower = "blank", legend = 1,
+                    diag = list(continuous = wrap("densityDiag", 
+                                                  alpha = density_alpha))) +
+            theme(legend.position = "bottom")
+    }
+    
+    return(g)
+    
+}
 
-Last compiled: `r Sys.Date()`
+```
+## Plots for Answering Questions
+```{r}
+employee_attrition_tbl %>%
+  select(Attrition, contains("income"), contains("salary"), contains("stock")) %>%
+  plot_ggpairs(Attrition)
+```
 
-Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left. 
+```{r}
+employee_attrition_tbl %>%
+  select(Attrition, contains("satisfaction")) %>%
+  plot_ggpairs(Attrition)
+```
+```{r}
+employee_attrition_tbl %>%
+  select(Attrition, contains("life"), contains("involvement"), contains("overtime")) %>%
+  plot_ggpairs(Attrition)
+```
+```{r}
+employee_attrition_tbl %>%
+  select(Attrition,  contains("years")) %>%
+  plot_ggpairs(Attrition)
+```
+## Questions
 
-## Second level header
 
-You can add more headers by adding more hashtags. These won't be put into the table of contents
+<b>1. What can you deduce about the interaction between Monthly Income and Attrition?</b>
 
-### third level header
+a. Those that are leaving the company have a higher Monthly Income
+b. That those are staying have a lower Monthly Income
+c. <font color=red>Those that are leaving have a lower Monthly Income</font>
+d. It's difficult to deduce anything based on the visualization
 
-Here's an even lower level header
 
-# My second post (note the order)
+<b>2. What can you deduce about the interaction between Percent Salary Hike and Attrition?</b>
 
-Last compiled: `r Sys.Date()`
+a. Those that are leaving the company have a higher Percent Salary Hike
+b. Those that are staying have a lower Percent Salary Hike
+c. Those that are leaving have lower Percent Salary Hike
+d. <font color=red>It's difficult to deduce anything based on the visualization</font>
 
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
 
-# Adding R stuff
+<b>3. What can you deduce about the interaction between Stock Option Level and Attrition?</b>
 
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
+a. Those that are leaving the company have a higher stock option level
+b. <font color=red>Those that are staying have a higher stock option level</font>
+c. It's difficult to deduce anything based on the visualization
 
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
+
+<b>4. What can you deduce about the interaction between Environment Satisfaction and Attrition?</b> 
+
+a.A higher proportion of those leaving have a low environment satisfaction level
+b. A higher proportion of those leaving have a high environment satisfaction level
+c. <font color=red>It's difficult to deduce anything based on the visualization</font>
+
+
+<b>5. What can you deduce about the interaction between Work Life Balance and Attrition</b> 
+a. Those that are leaving have higher density of 2's and 3's
+b. <font color=red>Those that are staying have a higher density of 2's and 3's</font>
+c. Those that are staying have a lower density of 2's and 3's
+d. It's difficult to deduce anything based on the visualization
+
+
+<b>6. What Can you deduce about the interaction between Job Involvement and Attrition?</b>
+
+a.Those that are leaving have a lower density of 3's and 4's
+b. Those that are leaving have a lower density of 1's and 2's
+c. Those that are staying have a lower density of 2's and 3's
+d. <font color=red>It's difficult to deduce anything based on the visualization</font>
+
+
+<b>7. What can you deduce about the interaction between Over Time and Attrition?</b>
+
+a. The proportion of those leaving that are working Over Time are high compared to those that are not leaving
+b. <font color=red>The proportion of those staying that are working Over Time are high compared to those that are not staying</font>
+
+
+<b>8. What can you deduce about the interaction between Training Times Last Year and Attrition?</b>
+
+a. People that leave tend to have more annual training
+b. <font color=red>People that leave tend to have less annual training</font>
+c. It's difficult to deduce anything based on the visualization
+
+
+<b>9. What can you deduce about the interaction between Years At Company and Attrition?</b> 
+a. People that leave tend to have more working years at the company
+b. <font color=red>People that leave tend to have less working years at the company</font>
+c. It's difficult to deduce anything based on the visualization
+
+
+<b>10. What can you deduce about the interaction between Years Since Last Promotion and Attrition?</b>
+
+a. Those that are leaving have more years since last promotion than those that are staying
+b. Those that are leaving have fewer years since last promotion than those that are staying
+c. <font color=red>It's difficult to deduce anything based on the visualization</font>
+
+# Part 2
+## Loading Libraries
+```{r}
+
+```
 
 ```{r}
 samples <- rnorm(100, mean=0, sd=1)
 hist(samples)
 ```
-
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.

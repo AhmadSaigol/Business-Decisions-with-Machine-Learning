@@ -9,14 +9,6 @@ output: html_document
 
 # **My Lab Journal**
 
-This is a template example for lab journaling. Students in the data science courses at the Institute of Entrepreneurship will use this template to learn R for business analytics. Students can replace this text as they wish.
+This journal is associated with Business Decisions with Machine Learning, created by Ahmad Nadeem Saigol.
 
-## How to use
-
-1. Accept the assignment and get your own github repo.
-
-2. Blog/journal what you are doing in R, by editing the `.Rmd` files. 
-
-3. See the links page for lots of helpful links on learning R.
-
-4. Change everything to make it your own.
+You can explore the journal via the tabs above.

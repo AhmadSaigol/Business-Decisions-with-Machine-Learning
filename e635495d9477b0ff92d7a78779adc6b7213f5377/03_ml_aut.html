@@ -15,7 +15,7 @@
 
 <title>03 Automated Machine Learning with H20</title>
 
-<script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.14/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -381,64 +381,149 @@ div.tocify {
 </div>
 
 
-<p><strong>IMPORTANT:</strong> You can delete everything in here and
-start fresh. You might want to start by not deleting anything above this
-line until you know what that stuff is doing.</p>
-<p>This is an <code>.Rmd</code> file. It is plain text with special
-features. Any time you write just like this, it will be compiled to
-normal text in the website. If you put a # in front of your text, it
-will create a top level-header.</p>
-<div id="my-first-post" class="section level1" number="1">
-<h1><span class="header-section-number">1</span> My first post</h1>
-<p>Last compiled: 2022-05-15</p>
-<p>Notice that whatever you define as a top level header, automatically
-gets put into the table of contents bar on the left.</p>
-<div id="second-level-header" class="section level2" number="1.1">
-<h2><span class="header-section-number">1.1</span> Second level
-header</h2>
-<p>You can add more headers by adding more hashtags. These won’t be put
-into the table of contents</p>
-<div id="third-level-header" class="section level3" number="1.1.1">
-<h3><span class="header-section-number">1.1.1</span> third level
-header</h3>
-<p>Here’s an even lower level header</p>
+<div id="part-1" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Part 1</h1>
+<div id="loading-libraries" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Loading
+Libraries</h2>
+<pre class="r"><code>library(GGally)</code></pre>
+</div>
+<div id="loading-data" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span> Loading Data</h2>
+<pre class="r"><code>employee_attrition_tbl &lt;- read_csv(&quot;new_raw_data/Business Decisions with Machine Learning/datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv&quot;)</code></pre>
+</div>
+<div id="plotting-helper-functions" class="section level2" number="1.3">
+<h2><span class="header-section-number">1.3</span> Plotting Helper
+Functions</h2>
+<pre class="r"><code>plot_ggpairs &lt;- function(data, color = NULL, density_alpha = 0.5) {
+    color_expr &lt;- enquo(color)
+    
+    if (rlang::quo_is_null(color_expr)) {
+        g &lt;- data %&gt;%
+            ggpairs(lower = &quot;blank&quot;) 
+    } else {
+        color_name &lt;- quo_name(color_expr)
+        g &lt;- data %&gt;%
+            ggpairs(mapping = aes_string(color = color_name), 
+                    lower = &quot;blank&quot;, legend = 1,
+                    diag = list(continuous = wrap(&quot;densityDiag&quot;, 
+                                                  alpha = density_alpha))) +
+            theme(legend.position = &quot;bottom&quot;)
+    }
+    
+    return(g)
+    
+}</code></pre>
+</div>
+<div id="plots-for-answering-questions" class="section level2"
+number="1.4">
+<h2><span class="header-section-number">1.4</span> Plots for Answering
+Questions</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;income&quot;), contains(&quot;salary&quot;), contains(&quot;stock&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;satisfaction&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;life&quot;), contains(&quot;involvement&quot;), contains(&quot;overtime&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition,  contains(&quot;years&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-7-1.png" width="672" />
+## Questions</p>
+<p><b>1. What can you deduce about the interaction between Monthly
+Income and Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving the company have a higher Monthly Income</li>
+<li>That those are staying have a lower Monthly Income</li>
+<li><font color=red>Those that are leaving have a lower Monthly
+Income</font></li>
+<li>It’s difficult to deduce anything based on the visualization</li>
+</ol>
+<p><b>2. What can you deduce about the interaction between Percent
+Salary Hike and Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving the company have a higher Percent Salary
+Hike</li>
+<li>Those that are staying have a lower Percent Salary Hike</li>
+<li>Those that are leaving have lower Percent Salary Hike</li>
+<li><font color=red>It’s difficult to deduce anything based on the
+visualization</font></li>
+</ol>
+<p><b>3. What can you deduce about the interaction between Stock Option
+Level and Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving the company have a higher stock option
+level</li>
+<li><font color=red>Those that are staying have a higher stock option
+level</font></li>
+<li>It’s difficult to deduce anything based on the visualization</li>
+</ol>
+<p><b>4. What can you deduce about the interaction between Environment
+Satisfaction and Attrition?</b></p>
+<p>a.A higher proportion of those leaving have a low environment
+satisfaction level b. A higher proportion of those leaving have a high
+environment satisfaction level c. <font color=red>It’s difficult to
+deduce anything based on the visualization</font></p>
+<p><b>5. What can you deduce about the interaction between Work Life
+Balance and Attrition</b> a. Those that are leaving have higher density
+of 2’s and 3’s b. <font color=red>Those that are staying have a higher
+density of 2’s and 3’s</font> c. Those that are staying have a lower
+density of 2’s and 3’s d. It’s difficult to deduce anything based on the
+visualization</p>
+<p><b>6. What Can you deduce about the interaction between Job
+Involvement and Attrition?</b></p>
+<p>a.Those that are leaving have a lower density of 3’s and 4’s b. Those
+that are leaving have a lower density of 1’s and 2’s c. Those that are
+staying have a lower density of 2’s and 3’s d. <font color=red>It’s
+difficult to deduce anything based on the visualization</font></p>
+<p><b>7. What can you deduce about the interaction between Over Time and
+Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>The proportion of those leaving that are working Over Time are high
+compared to those that are not leaving</li>
+<li><font color=red>The proportion of those staying that are working
+Over Time are high compared to those that are not staying</font></li>
+</ol>
+<p><b>8. What can you deduce about the interaction between Training
+Times Last Year and Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>People that leave tend to have more annual training</li>
+<li><font color=red>People that leave tend to have less annual
+training</font></li>
+<li>It’s difficult to deduce anything based on the visualization</li>
+</ol>
+<p><b>9. What can you deduce about the interaction between Years At
+Company and Attrition?</b> a. People that leave tend to have more
+working years at the company b. <font color=red>People that leave tend
+to have less working years at the company</font> c. It’s difficult to
+deduce anything based on the visualization</p>
+<p><b>10. What can you deduce about the interaction between Years Since
+Last Promotion and Attrition?</b></p>
+<ol style="list-style-type: lower-alpha">
+<li>Those that are leaving have more years since last promotion than
+those that are staying</li>
+<li>Those that are leaving have fewer years since last promotion than
+those that are staying</li>
+<li><font color=red>It’s difficult to deduce anything based on the
+visualization</font></li>
+</ol>
 </div>
 </div>
-</div>
-<div id="my-second-post-note-the-order" class="section level1"
-number="2">
-<h1><span class="header-section-number">2</span> My second post (note
-the order)</h1>
-<p>Last compiled: 2022-05-15</p>
-<p>I’m writing this tutorial going from the top down. And, this is how
-it will be printed. So, notice the second post is second in the list. If
-you want your most recent post to be at the top, then make a new post
-starting at the top. If you want the oldest first, do, then keep adding
-to the bottom</p>
-</div>
-<div id="adding-r-stuff" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
-<p>So far this is just a blog where you can write in plain text and
-serve your writing to a webpage. One of the main purposes of this lab
-journal is to record your progress learning R. The reason I am asking
-you to use this process is because you can both make a website, and a
-lab journal, and learn R all in R-studio. This makes everything really
-convenient and in the same place.</p>
-<p>So, let’s say you are learning how to make a histogram in R. For
-example, maybe you want to sample 100 numbers from a normal distribution
-with mean = 0, and standard deviation = 1, and then you want to plot a
-histogram. You can do this right here by using an r code block, like
-this:</p>
+<div id="part-2" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Part 2</h1>
+<div id="loading-libraries-1" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Loading
+Libraries</h2>
 <pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
 hist(samples)</code></pre>
-<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>When you knit this R Markdown document, you will see that the
-histogram is printed to the page, along with the R code. This document
-can be set up to hide the R code in the webpage, just delete the comment
-(hashtag) from the cold folding option in the yaml header up top. For
-purposes of letting yourself see the code, and me see the code, best to
-keep it the way that it is. You’ll learn that all of these things and
-more can be customized in each R code block.</p>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
 </div>
 
 
